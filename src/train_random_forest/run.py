@@ -94,7 +94,7 @@ def go(args):
     # HINT: use mlflow.sklearn.save_model
     # YOUR CODE HERE
     ######################################
-    export_path = os.path.join("./", "model_export")
+    export_path = os.path.join("random_forest_dir")
     signature = infer_signature(X_val, y_pred)
     mlflow.sklearn.save_model(
         sk_pipe,
