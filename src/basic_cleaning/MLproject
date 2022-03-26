@@ -6,28 +6,28 @@ entry_points:
     parameters:
 
       input_artifact:
-        description: ## ADD DESCRIPTION
+        description: "Fully-qualified name for the input artifact"
         type: string
 
       output_artifact:
-        description: ## ADD DESCRIPTION
+        description: "Fully-qualified name for the output artifact"
         type: string
 
       output_type:
-        description: ## ADD DESCRIPTION
+        description: "Type of data output"
         type: string
 
       output_description:
-        description: ## ADD DESCRIPTION
+        description: "Full description of the data prepared on this step"
         type: string
 
       min_price:
-        description: ## ADD DESCRIPTION
-        type: string
+        description: "Min value accepted for the price of the houses"
+        type: float
 
       max_price:
-        description: ## ADD DESCRIPTION
-        type: string
+        description: "Max value accepted for the price of the houses"
+        type: float
 
 
     command: >-
