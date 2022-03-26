@@ -9,6 +9,7 @@ import shutil
 import matplotlib.pyplot as plt
 
 import mlflow
+from mlflow.models import infer_signature
 import json
 
 import pandas as pd
@@ -31,7 +32,7 @@ def delta_date_feature(dates):
     between each date and the most recent date in its column
     """
     date_sanitized = pd.DataFrame(dates).apply(pd.to_datetime)
-    return date_sanitized.apply(lambda d: (d.max() -d).dt.days, axis=0).to_numpy()
+    return date_sanitized.apply(lambda d: (d.max() - d).dt.days, axis=0).to_numpy()
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)-15s %(message)s")
@@ -54,7 +55,7 @@ def go(args):
     ######################################
     # Use run.use_artifact(...).file() to get the train and validation artifact (args.trainval_artifact)
     # and save the returned path in train_local_pat
-    trainval_local_path = # YOUR CODE HERE
+    trainval_local_path = run.use_artifact(args.trainval_artifact).file()
     ######################################
 
     X = pd.read_csv(trainval_local_path)
@@ -67,16 +68,11 @@ def go(args):
     )
 
     logger.info("Preparing sklearn pipeline")
-
     sk_pipe, processed_features = get_inference_pipeline(rf_config, args.max_tfidf_features)
 
     # Then fit it to the X_train, y_train data
     logger.info("Fitting")
-
-    ######################################
-    # Fit the pipeline sk_pipe by calling the .fit method on X_train and y_train
-    # YOUR CODE HERE
-    ######################################
+    sk_pipe.fit(X_train, y_train)
 
     # Compute r2 and MAE
     logger.info("Scoring")
@@ -89,7 +85,6 @@ def go(args):
     logger.info(f"MAE: {mae}")
 
     logger.info("Exporting model")
-
     # Save model package in the MLFlow sklearn format
     if os.path.exists("random_forest_dir"):
         shutil.rmtree("random_forest_dir")
@@ -99,7 +94,15 @@ def go(args):
     # HINT: use mlflow.sklearn.save_model
     # YOUR CODE HERE
     ######################################
-
+    export_path = os.path.join("./", "model_export")
+    signature = infer_signature(X_val, y_pred)
+    mlflow.sklearn.save_model(
+        sk_pipe,
+        export_path,
+        serialization_format=mlflow.sklearn.SERIALIZATION_FORMAT_CLOUDPICKLE,
+        signature=signature,
+        input_example=X_val.iloc[:2],
+    )
     ######################################
     # Upload the model we just exported to W&B
     # HINT: use wandb.Artifact to create an artifact. Use args.output_artifact as artifact name, "model_export" as
@@ -108,6 +111,19 @@ def go(args):
     # run.log_artifact to log the artifact to the run
     # YOUR CODE HERE
     ######################################
+    logger.info("Logging model artifact")
+    artifact = wandb.Artifact(
+        args.output_artifact,
+        type="model_export",
+        description="Random Forest pipeline export",
+        metadata=rf_config,
+    )
+    artifact.add_dir(export_path)
+    run.log_artifact(artifact)
+
+    # Make sure the artifact is uploaded before the temp dir
+    # gets deleted
+    artifact.wait()
 
     # Plot feature importance
     fig_feat_imp = plot_feature_importance(sk_pipe, processed_features)
@@ -117,9 +133,10 @@ def go(args):
     run.summary['r2'] = r_squared
     # Now log the variable "mae" under the key "mae".
     # YOUR CODE HERE
+    run.summary['mae'] = mae
     ######################################
 
-    # Upload to W&B the feture importance visualization
+    # Upload to W&B the feature importance visualization
     run.log(
         {
           "feature_importance": wandb.Image(fig_feat_imp),
@@ -158,7 +175,9 @@ def get_inference_pipeline(rf_config, max_tfidf_features):
     # Build a pipeline with two steps:
     # 1 - A SimpleImputer(strategy="most_frequent") to impute missing values
     # 2 - A OneHotEncoder() step to encode the variable
-    non_ordinal_categorical_preproc = # YOUR CODE HERE
+    non_ordinal_categorical_preproc = make_pipeline(
+        SimpleImputer(strategy="most_frequent"), OneHotEncoder()
+    )
     ######################################
 
     # Let's impute the numerical columns to make sure we can handle missing values
@@ -210,14 +229,19 @@ def get_inference_pipeline(rf_config, max_tfidf_features):
     processed_features = ordinal_categorical + non_ordinal_categorical + zero_imputed + ["last_review", "name"]
 
     # Create random forest
-    random_Forest = RandomForestRegressor(**rf_config)
+    random_forest = RandomForestRegressor(**rf_config)
 
     ######################################
     # Create the inference pipeline. The pipeline must have 2 steps: a step called "preprocessor" applying the
     # ColumnTransformer instance that we saved in the `preprocessor` variable, and a step called "random_forest"
     # with the random forest instance that we just saved in the `random_forest` variable.
     # HINT: Use the explicit Pipeline constructor so you can assign the names to the steps, do not use make_pipeline
-    sk_pipe = # YOUR CODE HERE
+    sk_pipe = Pipeline(
+        steps=[
+            ("preprocessor", preprocessor),
+            ("random_forest", random_forest),
+        ]
+    )
 
     return sk_pipe, processed_features
 
