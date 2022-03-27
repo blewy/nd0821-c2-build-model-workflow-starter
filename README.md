@@ -9,6 +9,8 @@ In this project you will build such a pipeline.
 This project as developed using python and all the code the eventual changes/patches are in the github repository: 
 https://github.com/blewy/nd0821-c2-build-model-workflow-starter
 
+W&B Project its in the folowwwing link: https://wandb.ai/filsantos_team/nyc_airbnb
+
 ## Table of contents
 
 - [Introduction](#build-an-ML-Pipeline-for-Short-Term-Rental-Prices-in-NYC)
