@@ -6,6 +6,9 @@ to be retrained with the same cadence, necessitating an end-to-end pipeline that
 
 In this project you will build such a pipeline.
 
+This project as developed using python and all the code the eventual changes/patches are in the github repository: 
+https://github.com/blewy/nd0821-c2-build-model-workflow-starter
+
 ## Table of contents
 
 - [Introduction](#build-an-ML-Pipeline-for-Short-Term-Rental-Prices-in-NYC)
